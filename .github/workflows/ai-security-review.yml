@@ -1,0 +1,38 @@
+name: AI Security Review
+
+on:
+  push:
+    branches: ["**"]  # Runs on commits to any branch
+  pull_request:
+    branches: ["**"]  # Runs on PRs to any branch
+
+jobs:
+  security-check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Target Repository
+        uses: actions/checkout@v4
+
+      - name: Checkout AI Security Analyzer Tool
+        uses: actions/checkout@v4
+        with:
+          repository: arslan-asher/ai_project
+          path: scanner_tool
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f scanner_tool/requirements.txt ]; then pip install -r scanner_tool/requirements.txt; fi
+
+      - name: Run AI Security Analyzer
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PYTHONPATH: scanner_tool
+        run: python scanner_tool/main.py
