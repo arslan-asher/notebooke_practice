@@ -1,61 +1,63 @@
 import os
-
 from google import genai
-from google.genai import types
-
-from .schemas import ConflictResolutionOutput, ReviewOutput
+from src.schemas import ReviewResult
 
 
 class CodeAnalyzer:
-    def __init__(self, api_key: str | None = None):
-        self.api_key = api_key or os.getenv("GEMINI_API_KEY")
+
+    def __init__(self):
+        self.api_key = os.getenv("GEMINI_API_KEY")
+        if not self.api_key:
+            raise ValueError("GEMINI_API_KEY environment variable not set.")
         self.client = genai.Client(api_key=self.api_key)
-        self.model = "gemini-2.5-flash" or "gemini-2.0-flash"
 
-    def review_code(self, diff: str, linter_output: str = "") -> ReviewOutput:
+    def review_code(self, diff: str, linter_output: str) -> ReviewResult:
         prompt = f"""
-You are an expert AI code reviewer. Perform a CodeRabbit-style code review.
-Analyze the PR diff and static analysis / linter results provided below.
+        You are an expert AI Code Reviewer and Security Auditor.
+        Review the following code diff and linter output.
 
---- PR DIFF ---
-{diff}
+        Linter Output:
+        {linter_output}
 
---- STATIC ANALYSIS / LINTER OUTPUT ---
-{linter_output if linter_output else "No linter errors detected."}
+        Code Diff:
+        {diff}
 
-Provide:
-1. High-level summary.
-2. File-by-file walkthrough.
-3. Key code quality & security findings.
-4. Line-by-line inline code comments using ```suggestion formatting where applicable.
-"""
+        Provide a structured code review with high-level summary and specific inline code feedback.
+        """
+
         response = self.client.models.generate_content(
-            model=self.model,
+            model="gemini-2.0-flash",
             contents=prompt,
-            config=types.GenerateContentConfig(
-                response_mime_type="application/json",
-                response_schema=ReviewOutput,
-                temperature=0.2,
-            ),
+            config={
+                "response_mime_type": "application/json",
+                "response_schema": ReviewResult,
+            },
         )
-        return ReviewOutput.model_validate_json(response.text)
 
-    def resolve_conflict(self, filepath: str, conflicted_content: str) -> ConflictResolutionOutput:
+        return ReviewResult.model_validate_json(response.text)
+
+    def resolve_conflict(
+        self, base_code: str, compare_code: str, conflict_diff: str
+    ) -> str:
         prompt = f"""
-You are an expert Git merge conflict resolver.
-Resolve the merge conflict in file '{filepath}'.
-Remove all git conflict markers (<<<<<<<, =======, >>>>>>>) and integrate both sets of changes logically.
+        You are an expert Git Conflict Resolver.
+        Resolve the merge conflict between the base branch and compare branch.
 
---- CONFLICT FILE CONTENT ---
-{conflicted_content}
-"""
+        Base Branch Version:
+        {base_code}
+
+        Compare Branch Version:
+        {compare_code}
+
+        Conflict Diff:
+        {conflict_diff}
+
+        Return ONLY the clean, merged code without any Markdown formatting or extra text.
+        """
+
         response = self.client.models.generate_content(
-            model=self.model,
+            model="gemini-2.0-flash",
             contents=prompt,
-            config=types.GenerateContentConfig(
-                response_mime_type="application/json",
-                response_schema=ConflictResolutionOutput,
-                temperature=0.1,
-            ),
         )
-        return ConflictResolutionOutput.model_validate_json(response.text)
+
+        return response.text.strip()
