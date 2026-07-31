@@ -14,7 +14,7 @@ jobs:
           fetch-depth: 0
 
       - name: Run AI Reviewer Action
-        uses: arslan-asher/ai-code-reviewer@main # Replace with your GitHub username/repo
-        env:
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: arslan-asher/ai-code-reviewer@main
+        with:
+          gemini_api_key: ${{ secrets.GEMINI_API_KEY }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
