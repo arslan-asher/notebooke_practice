@@ -14,3 +14,7 @@ class ReviewResult(BaseModel):
         default_factory=list,
         description="A list of specific inline review comments.",
     )
+
+
+# Alias for compatibility with github_client module
+ReviewOutput = ReviewResult
