@@ -1,38 +1,52 @@
-name: AI Security Review
+name: AI Code Review & Conflict Resolver
 
 on:
-  push:
-    branches: ["**"]  # Runs on commits to any branch
   pull_request:
-    branches: ["**"]  # Runs on PRs to any branch
+    types: [opened, synchronize]
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
 
 jobs:
-  security-check:
+  review-and-resolve:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout Target Repository
-        uses: actions/checkout@v4
-
-      - name: Checkout AI Security Analyzer Tool
+      - name: Checkout Repository
         uses: actions/checkout@v4
         with:
-          repository: arslan-asher/ai_project
-          path: scanner_tool
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: "3.10"
 
       - name: Install Dependencies
         run: |
           python -m pip install --upgrade pip
-          if [ -f scanner_tool/requirements.txt ]; then pip install -r scanner_tool/requirements.txt; fi
+          pip install -r requirements.txt
 
-      - name: Run AI Security Analyzer
+      - name: Run Static Analysis
+        if: github.event_name == 'pull_request'
+        run: |
+          python -m ruff check . > linter_output.txt || true
+
+      - name: Run AI Review (PR Trigger)
+        if: github.event_name == 'pull_request'
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PYTHONPATH: scanner_tool
-        run: python scanner_tool/main.py
+        run: |
+          python main.py --mode review
+
+      - name: Resolve Conflicts on Command (@ai-bot resolve)
+        if: github.event_name == 'issue_comment' && contains(github.event.comment.body, '@ai-bot resolve')
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python main.py --mode resolve-conflicts
