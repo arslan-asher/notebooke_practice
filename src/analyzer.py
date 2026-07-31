@@ -10,7 +10,7 @@ class CodeAnalyzer:
     def __init__(self, api_key: str | None = None):
         self.api_key = api_key or os.getenv("GEMINI_API_KEY")
         self.client = genai.Client(api_key=self.api_key)
-        self.model = "gemini-2.5-flash"
+        self.model = "gemini-2.5-flash" or "gemini-2.0-flash"
 
     def review_code(self, diff: str, linter_output: str = "") -> ReviewOutput:
         prompt = f"""
