@@ -16,7 +16,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Run AI Code Reviewer
-        uses: your-username/ai-code-reviewer@main # Points to your unchanged reviewer repo
+        uses: arslan-asher/ai-code-reviewer@main # Points to your unchanged reviewer repo
         with:
           gemini_api_key: ${{ secrets.GEMINI_API_KEY }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
